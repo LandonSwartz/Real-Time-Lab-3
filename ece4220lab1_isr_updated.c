@@ -149,24 +149,6 @@ int init_module()
 	iowrite32(0x00000000,gpfsel1);
 	iowrite32(0x00000000,gpfsel2);
 	
-	//Step Two
-	//=========
-	// You need to configure the pull-downs for all those ports. There is
-	// a specific sequence that needs to be followed to configure those pull-downs.
-	// The sequence is described on page 101 of the BCM2837-ARM-Peripherals manual.
-	// You can use  udelay(100);  for those 150 cycles mentioned in the manual.
-	// It's not exactly 150 cycles, but it gives the necessary delay.
-	// WiringPi makes it a lot simpler in user space, but it's good to know
-	// how to do this "by hand".
-
-	iowrite32(0x00000001,gppud);
-	udelay(100);
-	iowrite32(0x001F0000,gppudclk0);
-	udelay(100);
-	iowrite32(0x00000000,gppud);
-	iowrite32(0x00000000,gppudclk0);
-	
-		
 	//Step 3
 	//=========
 	// Enable (Async) Rising Edge detection for all 5 GPIO ports.
