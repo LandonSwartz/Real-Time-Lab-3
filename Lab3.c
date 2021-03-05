@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<stdint.h>
 #include<wiringPi.h>
 #include<pthread.h>
@@ -21,25 +22,26 @@ void * thread3();
 int fd;		
 
 sem_t sema; 
-int btn_pressed;
+volatile unsigned long btn_pressed;
+unsigned long ptr;
 
 void main()
 {	//sema init
 	sem_init(&sema, 0, 1);
-
-	fd = open("/dev/mem", O_RDWR | O_SYNC);
-	unsigned long * ptr = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x3F200000);
 	
 	wiringPiSetup();
+	wiringPiSetupGpio();
+	
 	//configuring button
-	pinMode(27, INPUT); //making push button an input
-	pullUpDnControl(27, PUD_DOWN); //pull down resistor initialized
+	pinMode(16, INPUT); //making push button an input
+	pullUpDnControl(16, PUD_DOWN); //pull down resistor initialized
 	
 	//configuring leds
-	pinMode(8, OUTPUT); //red LED pin
-	pinMode(9, OUTPUT);
-	pinMode(7, OUTPUT);
-	pinMode(5, OUTPUT);
+	pinMode(2, OUTPUT); //red LED pin
+	pinMode(3, OUTPUT); //yellow
+	pinMode(4, OUTPUT); //green
+	
+	digitalWrite(3, LOW);
 	
 	//creating threads
 	pthread_t threads[NUM_THREADS];
@@ -53,10 +55,8 @@ void main()
 		pthread_join(threads[i], NULL);
 	}
 	
-
 	
 	sem_destroy(&sema);
-	
 	pthread_exit(NULL);
 	
 }
@@ -64,7 +64,7 @@ void main()
 void * thread1()
 {
 	struct sched_param param;
-		param.sched_priority = MY_PRIORITY;
+	param.sched_priority = MY_PRIORITY;
 	int ret = sched_setscheduler(0, SCHED_FIFO, &param);
 	if(ret == -1)
 	{
@@ -77,15 +77,16 @@ void * thread1()
 		sem_wait(&sema);
 		printf("Thread 1 grabbed semaphile\n");
 		//turn on
-		digitalWrite(9, HIGH);		
+		digitalWrite(4, HIGH);		
 		//sleep
 		delay(3000); //delaying two seconds
 		//turn off
-		digitalWrite(9, LOW);
+		digitalWrite(4, LOW);
 		//release semi
 		sem_post(&sema);
 		delay(1000);
 	}
+	
 }
 
 void * thread2()
@@ -104,11 +105,11 @@ void * thread2()
 		sem_wait(&sema);
 		printf("Thread 2 grabbed semaphile\n");
 		//turn on
-		digitalWrite(7, HIGH);
+		digitalWrite(3, HIGH);
 		//sleep
 		delay(3000); //delaying two seconds
 		//turn off
-		digitalWrite(7, LOW);
+		digitalWrite(3, LOW);
 		//release semi
 		sem_post(&sema);
 		delay(1000);
@@ -118,7 +119,7 @@ void * thread2()
 void * thread3()
 {
 	struct sched_param param;
-	param.sched_priority = MY_PRIORITY;
+	param.sched_priority = MY_PRIORITY + 1;
 	int ret = sched_setscheduler(0, SCHED_FIFO, &param);
 	if(ret == -1)
 	{
@@ -126,34 +127,42 @@ void * thread3()
 	}
 
 	fd = open("/dev/mem", O_RDWR | O_SYNC);
+	if(fd < 0)
+	{
+		printf("can't open dev/mem\n");
+		exit(1);
+	}
 	unsigned long * ptr = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x3F200000);
-	printf("%x = ptr\n", ptr);
-	ptr = ptr + 0x40;
-	printf("%x = ptr\n", ptr); 
-
-
+	if(ptr == MAP_FAILED)
+	{
+		printf("mmap error\n");
+		exit(1);
+	}
+	close(fd);
+	ptr = ptr + (0x00000040/4);
 
 	while(1)
 	{
-		//btn_pressed = digitalRead(27);
-		btn_pressed = ioread32(ptr);
-		printf("btn_pressed = %x\n", btn_pressed); 
+		//printf("ptr (mapped) = %08x\n", btn_pressed);
 
-		if(btn_pressed)
+		sem_wait(&sema);		
+		btn_pressed = *ptr;
+
+		if(*ptr == 0x00010000)
 		{	
 			
-			//lcok sema
-			sem_wait(&sema);
+			//lcok sema	
 			printf("Thread 3 grabbed semaphile\n");
 			//turn on
-			digitalWrite(8, HIGH);
+			digitalWrite(2, HIGH);
 			//sleep
 			delay(5000); //delaying two seconds
 			//turn off
-			digitalWrite(8, LOW);
+			digitalWrite(2, LOW);
 			//release semi
-			sem_post(&sema);
+			*ptr = 0xFFFFFFFF;
 			delay(1000);
 		}
+		sem_post(&sema);
 	}
 }
