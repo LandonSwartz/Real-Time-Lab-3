@@ -41,6 +41,10 @@ void main()
 	pinMode(3, OUTPUT); //yellow
 	pinMode(4, OUTPUT); //green
 	
+	digitalWrite(2, LOW);	
+	digitalWrite(3, LOW);
+	digitalWrite(4, LOW);
+	
 	digitalWrite(3, LOW);
 	
 	//creating threads
