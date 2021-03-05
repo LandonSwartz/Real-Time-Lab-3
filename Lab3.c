@@ -36,7 +36,7 @@ void main()
 	pullUpDnControl(27, PUD_DOWN); //pull down resistor initialized
 	
 	//configuring leds
-	pinMode(8, OUTPUT); //LED pin
+	pinMode(8, OUTPUT); //red LED pin
 	pinMode(9, OUTPUT);
 	pinMode(7, OUTPUT);
 	pinMode(5, OUTPUT);
@@ -77,14 +77,14 @@ void * thread1()
 		sem_wait(&sema);
 		printf("Thread 1 grabbed semaphile\n");
 		//turn on
-		digitalWrite(8, HIGH);		
+		digitalWrite(9, HIGH);		
 		//sleep
-		delay(2); //delaying two seconds
+		delay(3000); //delaying two seconds
 		//turn off
-		digitalWrite(8, LOW);
+		digitalWrite(9, LOW);
 		//release semi
 		sem_post(&sema);
-		delay(2);
+		delay(1000);
 	}
 }
 
@@ -106,12 +106,12 @@ void * thread2()
 		//turn on
 		digitalWrite(7, HIGH);
 		//sleep
-		delay(2); //delaying two seconds
+		delay(3000); //delaying two seconds
 		//turn off
 		digitalWrite(7, LOW);
 		//release semi
 		sem_post(&sema);
-		delay(2);
+		delay(1000);
 	}
 }
 
@@ -127,26 +127,33 @@ void * thread3()
 
 	fd = open("/dev/mem", O_RDWR | O_SYNC);
 	unsigned long * ptr = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x3F200000);
+	printf("%x = ptr\n", ptr);
+	ptr = ptr + 0x40;
+	printf("%x = ptr\n", ptr); 
 
-	//btn_pressed = *ptr;
-	printf("btn_pressed = %d\n", btn_pressed); 
+
 
 	while(1)
 	{
+		//btn_pressed = digitalRead(27);
+		btn_pressed = ioread32(ptr);
+		printf("btn_pressed = %x\n", btn_pressed); 
+
 		if(btn_pressed)
-		{
+		{	
+			
 			//lcok sema
 			sem_wait(&sema);
 			printf("Thread 3 grabbed semaphile\n");
 			//turn on
-			digitalWrite(9, HIGH);
+			digitalWrite(8, HIGH);
 			//sleep
-			delay(2); //delaying two seconds
+			delay(5000); //delaying two seconds
 			//turn off
-			digitalWrite(9, LOW);
+			digitalWrite(8, LOW);
 			//release semi
 			sem_post(&sema);
-			delay(2);
+			delay(1000);
 		}
 	}
 }
