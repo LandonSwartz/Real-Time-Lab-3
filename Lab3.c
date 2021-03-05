@@ -119,7 +119,7 @@ void * thread2()
 void * thread3()
 {
 	struct sched_param param;
-	param.sched_priority = MY_PRIORITY + 1;
+	param.sched_priority = MY_PRIORITY + 1; //to be most important priority
 	int ret = sched_setscheduler(0, SCHED_FIFO, &param);
 	if(ret == -1)
 	{
