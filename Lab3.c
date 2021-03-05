@@ -18,10 +18,7 @@ void * thread1();
 void * thread2();
 void * thread3();
 
-int fd;
-
-
-
+int fd;		
 
 sem_t sema; 
 int btn_pressed;
@@ -35,13 +32,13 @@ void main()
 	
 	wiringPiSetup();
 	//configuring button
-	pinMode(16, INPUT); //making push button an input
-	pullUpDnControl(16, PUD_DOWN); //pull down resistor initialized
+	pinMode(27, INPUT); //making push button an input
+	pullUpDnControl(27, PUD_DOWN); //pull down resistor initialized
 	
 	//configuring leds
-	pinMode(2, OUTPUT); //LED pin
-	pinMode(3, OUTPUT);
-	pinMode(4, OUTPUT);
+	pinMode(8, OUTPUT); //LED pin
+	pinMode(9, OUTPUT);
+	pinMode(7, OUTPUT);
 	pinMode(5, OUTPUT);
 	
 	//creating threads
@@ -80,13 +77,14 @@ void * thread1()
 		sem_wait(&sema);
 		printf("Thread 1 grabbed semaphile\n");
 		//turn on
-		digitalWrite(2, HIGH);		
+		digitalWrite(8, HIGH);		
 		//sleep
 		delay(2); //delaying two seconds
 		//turn off
-		digitalWrite(2, LOW);
+		digitalWrite(8, LOW);
 		//release semi
 		sem_post(&sema);
+		delay(2);
 	}
 }
 
@@ -106,13 +104,14 @@ void * thread2()
 		sem_wait(&sema);
 		printf("Thread 2 grabbed semaphile\n");
 		//turn on
-		digitalWrite(3, HIGH);
+		digitalWrite(7, HIGH);
 		//sleep
 		delay(2); //delaying two seconds
 		//turn off
-		digitalWrite(3, LOW);
+		digitalWrite(7, LOW);
 		//release semi
 		sem_post(&sema);
+		delay(2);
 	}
 }
 
@@ -126,6 +125,12 @@ void * thread3()
 		printf("Error with scheduler\n");
 	}
 
+	fd = open("/dev/mem", O_RDWR | O_SYNC);
+	unsigned long * ptr = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x3F200000);
+
+	//btn_pressed = *ptr;
+	printf("btn_pressed = %d\n", btn_pressed); 
+
 	while(1)
 	{
 		if(btn_pressed)
@@ -134,13 +139,14 @@ void * thread3()
 			sem_wait(&sema);
 			printf("Thread 3 grabbed semaphile\n");
 			//turn on
-			digitalWrite(3, HIGH);
+			digitalWrite(9, HIGH);
 			//sleep
 			delay(2); //delaying two seconds
 			//turn off
-			digitalWrite(3, LOW);
+			digitalWrite(9, LOW);
 			//release semi
 			sem_post(&sema);
+			delay(2);
 		}
 	}
 }
